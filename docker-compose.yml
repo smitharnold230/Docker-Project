@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  database:
+    # Use the official certified image
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: 'baremetal_admin'
+      POSTGRES_PASSWORD: 'super_secret123'
+      POSTGRES_DB: 'application_db'
+    ports:
+      - "5432:5432"
+    volumes:
+      # Automatically execute SQL seed upon startup
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - app_network
+
+  api_backend:
+    # We point to the backend folder containing our Dockerfile
+    build: ./backend
+    environment:
+      PORT: 3000
+      # By passing the service name 'database', Docker handles internal private networking/DNS resolution!
+      # We do NOT use 'localhost' because inside the API container, localhost is the API container itself!
+      PGHOST: 'database'
+      PGUSER: 'baremetal_admin'
+      PGPASSWORD: 'super_secret123'
+      PGDATABASE: 'application_db'
+      PGPORT: 5432
+    ports:
+      - "3000:3000"
+    depends_on:
+      - database
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge
