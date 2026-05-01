@@ -1,0 +1,213 @@
+:root {
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: #f4f1ea;
+  background:
+    radial-gradient(circle at top left, rgba(255, 184, 102, 0.18), transparent 32%),
+    radial-gradient(circle at bottom right, rgba(72, 102, 255, 0.16), transparent 34%),
+    linear-gradient(135deg, #121826 0%, #1b2235 55%, #101522 100%);
+  line-height: 1.5;
+  font-weight: 400;
+  color-scheme: dark;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.page-shell,
+.dashboard-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+}
+
+.page-shell {
+  grid-template-columns: repeat(2, minmax(280px, 460px));
+  gap: 24px;
+}
+
+.hero-panel,
+.form-panel,
+.dashboard-card {
+  background: rgba(10, 14, 24, 0.72);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+}
+
+.hero-panel,
+.form-panel {
+  padding: 32px;
+}
+
+.hero-panel h1,
+.dashboard-card h1 {
+  margin: 0 0 12px;
+  font-size: clamp(2rem, 5vw, 3.6rem);
+  line-height: 1.05;
+}
+
+.eyebrow {
+  margin: 0 0 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.75rem;
+  color: #ffb866;
+}
+
+.subtitle {
+  margin: 0 0 24px;
+  color: rgba(244, 241, 234, 0.78);
+}
+
+.nav-links {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.nav-links a,
+.secondary-button,
+button {
+  border-radius: 12px;
+  border: none;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: transform 0.2s ease, opacity 0.2s ease, background 0.2s ease;
+}
+
+.nav-links a {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+button {
+  background: linear-gradient(135deg, #ffb866, #ff7a59);
+  color: #111827;
+  font-weight: 700;
+}
+
+button:hover,
+.nav-links a:hover,
+.secondary-button:hover {
+  transform: translateY(-1px);
+}
+
+button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.auth-form {
+  display: grid;
+  gap: 16px;
+}
+
+.auth-form label {
+  display: grid;
+  gap: 8px;
+  color: rgba(244, 241, 234, 0.92);
+}
+
+.auth-form input {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f4f1ea;
+  padding: 14px 16px;
+  outline: none;
+}
+
+.auth-form input:focus {
+  border-color: rgba(255, 184, 102, 0.75);
+  box-shadow: 0 0 0 4px rgba(255, 184, 102, 0.12);
+}
+
+.error-box {
+  background: rgba(255, 95, 95, 0.12);
+  border: 1px solid rgba(255, 95, 95, 0.35);
+  color: #ffb7b7;
+  padding: 12px 14px;
+  border-radius: 12px;
+}
+
+.dashboard-card {
+  width: min(720px, 100%);
+  padding: 32px;
+}
+
+.token-box {
+  display: grid;
+  gap: 10px;
+  margin: 24px 0;
+}
+
+.token-box code {
+  display: block;
+  overflow-wrap: anywhere;
+  padding: 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #d8e2ff;
+}
+
+.secondary-button {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f4f1ea;
+}
+
+.status-grid {
+  margin-top: 24px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.status-card {
+  padding: 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.status-card h3 {
+  margin: 0 0 10px;
+}
+
+.status-card p {
+  margin: 6px 0;
+  color: rgba(244, 241, 234, 0.88);
+}
+
+@media (max-width: 900px) {
+  .page-shell {
+    grid-template-columns: 1fr;
+  }
+}

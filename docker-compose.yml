@@ -1,40 +1,143 @@
-version: '3.8'
-
 services:
-  database:
-    # Use the official certified image
-    image: postgres:15-alpine
+  postgres:
+    image: postgres:16
+    container_name: kafka-auth-postgres
     environment:
-      POSTGRES_USER: 'baremetal_admin'
-      POSTGRES_PASSWORD: 'super_secret123'
-      POSTGRES_DB: 'application_db'
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: auth_kafka
     ports:
       - "5432:5432"
     volumes:
-      # Automatically execute SQL seed upon startup
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-    networks:
-      - app_network
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d auth_kafka"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
-  api_backend:
-    # We point to the backend folder containing our Dockerfile
-    build: ./backend
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.1
+    container_name: kafka-auth-zookeeper
     environment:
-      PORT: 3000
-      # By passing the service name 'database', Docker handles internal private networking/DNS resolution!
-      # We do NOT use 'localhost' because inside the API container, localhost is the API container itself!
-      PGHOST: 'database'
-      PGUSER: 'baremetal_admin'
-      PGPASSWORD: 'super_secret123'
-      PGDATABASE: 'application_db'
-      PGPORT: 5432
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
     ports:
-      - "3000:3000"
-    depends_on:
-      - database
-    networks:
-      - app_network
+      - "2181:2181"
 
-networks:
-  app_network:
-    driver: bridge
+  kafka:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: kafka-auth-broker
+    depends_on:
+      - zookeeper
+    ports:
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+    healthcheck:
+      test: ["CMD-SHELL", "cub kafka-ready -b localhost:9092 1 20"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  kafka-init:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: kafka-auth-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    command: >
+      bash -lc "kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic user-events --partitions 3 --replication-factor 1 && echo 'Topic user-events ready'"
+    restart: "no"
+
+  backend:
+    build:
+      context: ./backend
+    container_name: kafka-auth-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka-init:
+        condition: service_completed_successfully
+    environment:
+      PORT: 5000
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/auth_kafka
+      JWT_SECRET: your_super_secret_key
+      JWT_EXPIRES_IN: 1d
+      CORS_ORIGIN: http://localhost:5173
+      KAFKA_BROKER: kafka:9092
+      KAFKA_CLIENT_ID: auth-backend
+      EMAIL_SERVICE_URL: http://email-service:6001
+      ANALYTICS_SERVICE_URL: http://analytics-service:6002
+      LOGGING_SERVICE_URL: http://logging-service:6003
+    ports:
+      - "5000:5000"
+
+  email-service:
+    build:
+      context: ./services/email-service
+    container_name: kafka-auth-email-service
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+    environment:
+      KAFKA_BROKER: kafka:9092
+      KAFKA_CLIENT_ID: email-service
+      KAFKA_GROUP_ID: email-service-group
+      PORT: 6001
+    ports:
+      - "6001:6001"
+
+  analytics-service:
+    build:
+      context: ./services/analytics-service
+    container_name: kafka-auth-analytics-service
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+    environment:
+      KAFKA_BROKER: kafka:9092
+      KAFKA_CLIENT_ID: analytics-service
+      KAFKA_GROUP_ID: analytics-service-group
+      PORT: 6002
+    ports:
+      - "6002:6002"
+
+  logging-service:
+    build:
+      context: ./services/logging-service
+    container_name: kafka-auth-logging-service
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+    environment:
+      KAFKA_BROKER: kafka:9092
+      KAFKA_CLIENT_ID: logging-service
+      KAFKA_GROUP_ID: logging-service-group
+      PORT: 6003
+    ports:
+      - "6003:6003"
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: kafka-auth-frontend
+    depends_on:
+      - backend
+    environment:
+      VITE_API_URL: http://localhost:5000
+    ports:
+      - "5173:5173"
+
+volumes:
+  postgres_data:

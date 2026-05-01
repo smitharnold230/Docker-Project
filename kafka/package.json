@@ -1,0 +1,12 @@
+{
+  "name": "kafka-tools",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "replay": "node replay.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "kafkajs": "^2.2.4"
+  }
+}
